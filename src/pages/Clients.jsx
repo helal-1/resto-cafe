@@ -106,9 +106,9 @@ export default function Clients() {
     };
 
     return (
-        <div className="p-4  w-300 ml-64 mt-5">
+        <div className="p-4  w-300 ml-64 mt-5" dir="rtl">
             <ToastContainer position="top-right" autoClose={2000} />
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 ">
                 <h2 className="text-2xl font-bold">العملاء</h2>
                 <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-all">
                     إضافة عميل جديد
@@ -119,9 +119,8 @@ export default function Clients() {
                 <p>جاري تحميل العملاء...</p>
             ) : clients.length === 0 ? (
                 <p>لا يوجد عملاء بعد</p>
-                ) : (
-                       
-                <div className="bg-white rounded shadow">
+            ) : (
+                <div className="bg-white rounded shadow ">
                     {clients.map((client) => (
                         <div key={client.id} className="flex justify-between items-center p-4 border-b transition-all hover:bg-gray-50">
                             {/* اليسار: أيقونات + بيانات العميل */}

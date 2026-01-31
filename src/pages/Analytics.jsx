@@ -102,7 +102,7 @@ export default function Analytics() {
     };
 
     return (
-        <div className="p-6 space-y-6 w-300 ml-68 mt-5">
+        <div className="p-6 space-y-6 w-300 ml-68 mt-5" dir="rtl">
             <h1 className="text-3xl font-bold mb-4">لوحة الإحصائيات</h1>
 
             {loading ? (

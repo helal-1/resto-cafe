@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
+import Withdrawals from "./pages/Withdrawals";
 import Analytics from "./pages/Analytics";
 import Clients from "./pages/Clients";
 
@@ -11,6 +12,7 @@ export default function App() {
                 <Routes>
                     <Route path="/" element={<Clients />} />
                     <Route path="/analytics" element={<Analytics />} />
+                    <Route path="/withdrawals" element={<Withdrawals />} />
                 </Routes>
             </main>
         </div>
