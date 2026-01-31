@@ -120,7 +120,7 @@ export default function Analytics() {
     };
 
     return (
-        <div className="p-8 bg-gray-50 min-h-screen font-sans w-300" dir="rtl">
+        <div className="p-8 bg-gray-50 min-h-screen font-sans w-200" dir="rtl">
             <header className="mb-10">
                 <h1 className="text-4xl font-black text-gray-900 tracking-tight">إحصائيات النظام</h1>
                 <p className="text-gray-500 mt-2 text-lg">تحليل دقيق للمنتجات، العملاء، والتدفق المالي</p>
