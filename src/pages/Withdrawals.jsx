@@ -33,7 +33,7 @@ export default function Withdrawals() {
     const totalAmount = filteredWithdrawals.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen w-200" dir="rtl">
+        <div className="p-6 bg-gray-50 min-h-screen w-90%" dir="rtl">
             <div className="max-w-5xl mx-auto">
                 {/* الرأس: العنوان والإجمالي */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
