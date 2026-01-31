@@ -1,10 +1,9 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite"; // ضيف السطر ده
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-    plugins: [
-        react(),
-        tailwindcss(), // ضيف السطر ده هنا
-    ],
+    plugins: [react(), tailwindcss()],
+    // ضيف السطر ده عشان جيت هاب يعرف يوصل لملفات الـ CSS والـ JS
+    base: "/resto-cafe/",
 });
