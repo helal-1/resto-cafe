@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import ClientOrdersModal from "../components/ClientOrdersModal";
 import AddClientModal from "../components/AddClientModal";
-import { FaTrash, FaWhatsapp, FaUser, FaPhone } from "react-icons/fa";
+import { FaTrash, FaWhatsapp, FaUser, FaPhone, FaExclamationTriangle } from "react-icons/fa";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -13,6 +13,8 @@ export default function Clients() {
     const [ordersModalOpen, setOrdersModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
     const [showForm, setShowForm] = useState(false);
+
+    const CREDIT_LIMIT = 500; // سقف الائتمان المحدد
 
     useEffect(() => {
         fetchClients();
@@ -25,7 +27,6 @@ export default function Clients() {
 
             if (error) throw error;
 
-            // احسب الإجمالي لكل عميل
             const clientsWithTotal = await Promise.all(
                 data.map(async (client) => {
                     const { data: orders, error: orderErr } = await supabase.from("orders").select("price").eq("client_id", client.id);
@@ -51,11 +52,6 @@ export default function Clients() {
 
     const fetchOrders = async (clientId) => {
         const { data, error } = await supabase.from("orders").select("*").eq("client_id", clientId).order("created_at", { ascending: false });
-
-        if (error) {
-            console.error("Error fetching orders:", error);
-            return [];
-        }
         return data || [];
     };
 
@@ -72,99 +68,116 @@ export default function Clients() {
 
     const handleWhatsAppClick = async (client) => {
         const text = await generateWhatsAppMessage(client);
-
-        // تحويل الرقم للصيغة الدولية
-        let phone = client.phone.replace(/\D/g, ""); // إزالة أي رموز أو مسافات
-        if (phone.startsWith("0")) {
-            phone = "20" + phone.substring(1); // مصر: استبدال 0 بـ 20
-        }
-
-        // فتح واتس آب
+        let phone = client.phone.replace(/\D/g, "");
+        if (phone.startsWith("0")) phone = "20" + phone.substring(1);
         const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
         window.open(url, "_blank");
     };
 
     const handleDeleteClient = async (clientId) => {
-        if (!clientId) return toast.error("خطأ: لا يوجد ID للحذف");
-
-        const confirmDelete = toast.success("هل أنت متأكد من حذف هذا العميل وكل بياناته؟");
-        if (!confirmDelete) return;
+        if (!window.confirm("هل أنت متأكد من حذف هذا العميل وكل بياناته؟")) return;
 
         try {
-            const { error: orderError } = await supabase.from("orders").delete().eq("client_id", clientId);
-            if (orderError) throw orderError;
-
-            const { error: clientError } = await supabase.from("clients").delete().eq("id", clientId);
-            if (clientError) throw clientError;
-
+            await supabase.from("orders").delete().eq("client_id", clientId);
+            await supabase.from("clients").delete().eq("id", clientId);
             toast.success("تم حذف العميل بنجاح");
             fetchClients();
         } catch (err) {
-            console.error("Error deleting client:", err);
             toast.error("حدث خطأ أثناء الحذف");
         }
     };
 
     return (
-        <div className="p-4  w-300 ml-64 mt-5" dir="rtl">
+        <div className="p-4 mt-5" dir="rtl">
             <ToastContainer position="top-right" autoClose={2000} />
-            <div className="flex justify-between items-center mb-4 ">
-                <h2 className="text-2xl font-bold">العملاء</h2>
-                <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-all">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800">إدارة العملاء</h2>
+                    <p className="text-sm text-gray-500">
+                        حد الائتمان الحالي: <span className="font-bold text-red-600">{CREDIT_LIMIT} جنيه</span>
+                    </p>
+                </div>
+                <button onClick={() => setModalOpen(true)} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md transition-all">
                     إضافة عميل جديد
                 </button>
             </div>
 
             {loading ? (
-                <p>جاري تحميل العملاء...</p>
+                <p className="text-center py-10">جاري تحميل العملاء...</p>
             ) : clients.length === 0 ? (
-                <p>لا يوجد عملاء بعد</p>
+                <p className="text-center py-10">لا يوجد عملاء بعد</p>
             ) : (
-                <div className="bg-white rounded shadow ">
-                    {clients.map((client) => (
-                        <div key={client.id} className="flex justify-between items-center p-4 border-b transition-all hover:bg-gray-50">
-                            {/* اليسار: أيقونات + بيانات العميل */}
-                            <div className="flex items-center gap-4">
-                                {/* حذف */}
-                                <button onClick={() => handleDeleteClient(client.id)} title="حذف العميل">
-                                    <FaTrash className="text-red-600 hover:text-red-800 text-xl transition-colors" />
-                                </button>
+                <div className="grid gap-4">
+                    {clients.map((client) => {
+                        const isOverLimit = client.total >= CREDIT_LIMIT;
+                        const progress = Math.min((client.total / CREDIT_LIMIT) * 100, 100);
 
-                                {/* أيقونة العميل + الاسم */}
-                                <div className="flex items-center gap-1">
-                                    <FaUser className="text-gray-600" />
-                                    <p className="font-semibold">{client.name}</p>
+                        return (
+                            <div
+                                key={client.id}
+                                className={`relative overflow-hidden bg-white rounded-xl shadow-sm border-r-4 p-4 transition-all hover:shadow-md ${isOverLimit ? "border-red-600 bg-red-50" : "border-green-500"}`}>
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-6">
+                                        {/* بيانات العميل */}
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <FaUser className={isOverLimit ? "text-red-600" : "text-gray-400"} />
+                                                <p className={`font-bold text-lg ${isOverLimit ? "text-red-800" : "text-gray-800"}`}>{client.name}</p>
+                                                {isOverLimit && <FaExclamationTriangle className="text-red-600 animate-bounce" title="تجاوز الحد!" />}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <FaPhone />
+                                                <p>{client.phone}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* إجمالي الحساب */}
+                                        <div className="text-center px-4 border-r border-l">
+                                            <p className="text-xs text-gray-400 mb-1 font-medium">إجمالي المديونية</p>
+                                            <span className={`text-xl font-black ${isOverLimit ? "text-red-600" : "text-green-700"}`}>
+                                                {client.total} <small className="text-xs">ج.م</small>
+                                            </span>
+                                        </div>
+
+                                        {/* شريط التقدم */}
+                                        <div className="w-48 hidden md:block">
+                                            <div className="flex justify-between text-[10px] mb-1">
+                                                <span>الاستهلاك</span>
+                                                <span>{Math.round(progress)}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                                <div
+                                                    className={`h-1.5 rounded-full transition-all duration-500 ${isOverLimit ? "bg-red-600" : "bg-green-500"}`}
+                                                    style={{ width: `${progress}%` }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* الأزرار */}
+                                    <div className="flex gap-2">
+                                        <button className="p-2 text-red-600 hover:bg-red-100 rounded-full transition-colors" onClick={() => handleDeleteClient(client.id)} title="حذف">
+                                            <FaTrash />
+                                        </button>
+                                        <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm transition-all" onClick={() => openOrders(client)}>
+                                            عرض الحساب
+                                        </button>
+                                        <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm transition-all" onClick={() => openOrders(client, true)}>
+                                            إضافة سحب
+                                        </button>
+                                        <button
+                                            className="px-3 py-1 bg-green-500 text-white rounded flex items-center gap-1 hover:bg-green-600 text-sm transition-all"
+                                            onClick={() => handleWhatsAppClick(client)}>
+                                            <FaWhatsapp /> واتس
+                                        </button>
+                                    </div>
                                 </div>
-
-                                {/* أيقونة الهاتف + الرقم */}
-                                <div className="flex items-center gap-1">
-                                    <FaPhone className="text-gray-600" />
-                                    <p className="text-sm text-gray-500">{client.phone}</p>
-                                </div>
-
-                                {/* إجمالي الحساب */}
-                                <span className="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded text-sm font-medium">{client.total} جنيه</span>
                             </div>
-
-                            {/* اليمين: الأزرار */}
-                            <div className="flex gap-2">
-                                <button className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all" onClick={() => openOrders(client)}>
-                                    عرض الحساب
-                                </button>
-                                <button className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-all" onClick={() => openOrders(client, true)}>
-                                    إضافة سحب
-                                </button>
-                                <button className="px-3 py-1 bg-green-500 text-white rounded flex items-center gap-1 hover:bg-green-600 transition-all" onClick={() => handleWhatsAppClick(client)}>
-                                    <FaWhatsapp /> واتس
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
             <AddClientModal isOpen={modalOpen} onClose={() => setModalOpen(false)} onClientAdded={fetchClients} />
-
             {selectedClient && <ClientOrdersModal isOpen={ordersModalOpen} onClose={() => setOrdersModalOpen(false)} client={selectedClient} showForm={showForm} />}
         </div>
     );
